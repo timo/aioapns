@@ -151,6 +151,8 @@ class APNsBaseClientProtocol(H2Protocol):
     async def send_notification(self, request):
         stream_id = await self.free_channels.acquire()
 
+        datalog = logger.getChild("transfer")
+
         headers = [
             (':method', 'POST'),
             (':scheme', 'https'),
@@ -171,12 +173,14 @@ class APNsBaseClientProtocol(H2Protocol):
         if self.auth_provider:
             headers.append(('authorization', self.auth_provider.get_header()))
 
+        datalog.debug("stream_id: %d, headers: %s", stream_id, repr(headers))
         self.conn.send_headers(
             stream_id=stream_id,
             headers=headers
         )
         try:
             data = json.dumps(request.message, ensure_ascii=False).encode()
+
             self.conn.send_data(
                 stream_id=stream_id,
                 data=data,
